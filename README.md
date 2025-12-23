@@ -1,184 +1,238 @@
-# **Software Architecture Guidelines**
+# **Embedded Software Architecture Guidelines**
+
+*A unified set of principles for building robust, maintainable, and long-lived embedded software systems.*
+
+---
 
 ## **1. Introduction & Core Philosophy**
 
-The objective of this document is to define the core principles governing our embedded software development process. These guidelines are designed to reduce complexity, mitigate risk, and ensure that our software is robust, secure, portable, and maintainable over long product lifecycles.
+The objective of this document is to define the core architectural principles governing our embedded software development. These guidelines aim to reduce complexity, mitigate technical and organisational risk, and ensure that our software remains **robust, secure, portable, and maintainable** throughout long product lifecycles.
 
-**The Golden Rule:** We prioritise **system maintainability and clarity** over micro-optimisations, unless a specific performance bottleneck is proven via profiling.
+These principles apply to all embedded software developed within the organisation, independent of target platform, operating system, or project size.
+
+**The Golden Rule**  
+We prioritise **system maintainability and clarity** over micro-optimisations, unless a concrete performance bottleneck is demonstrated through measurement and profiling.
+
+---
 
 ## **2. Architectural Structure**
 
-*The structural foundation of our code.*
+*The structural foundation of the software system.*
 
 ### **2.1. Layering and Abstraction (HAL & OSAL)**
 
-**Principle:** Application logic must be independent of hardware details and the underlying Real-Time Operating System (RTOS).
+**Principle**  
+Application logic shall be independent of hardware details and the underlying Real-Time Operating System (RTOS).
 
-**Rationale:** Decoupling business logic from platform specifics reduces risk, improves testability, and enables long-term portability.
+**Rationale**  
+Decoupling business logic from platform-specific concerns reduces risk, improves testability, and enables long-term portability across hardware platforms, operating systems, and simulation environments.
 
-**Implementation Guidance:**
+**Implementation Guidance**
 
-* **Hardware Abstraction Layer (HAL):** Application code must never access hardware registers or vendor-specific driver functions (e.g., SDKs) directly. All hardware interaction must go through a defined HAL.
-* **Operating System Abstraction (OSAL):** Application code must not directly call specific RTOS functions (e.g., `xTaskCreate`, `osDelay`). Instead, use a generic abstraction layer or framework wrapper.
-* **Portability Target:** With a compliant HAL/OSAL, the application shall be able to run on different microcontrollers, different operating systems, or inside a PC simulator (SIL) without changes to business logic.
+* **Hardware Abstraction Layer (HAL):** Application code shall never access hardware registers or vendor-specific driver functions (e.g., SDKs) directly. All hardware interaction must occur through a defined HAL.
+* **Operating System Abstraction Layer (OSAL):** Application code shall not directly call RTOS-specific APIs (e.g., `xTaskCreate`, `osDelay`). Instead, use a generic abstraction layer or approved framework wrapper.
+* **Portability Target:** With a compliant HAL and OSAL, application logic shall run unchanged on different microcontrollers, different operating systems, or within a PC-based Software-in-the-Loop (SIL) environment.
+
+---
 
 ### **2.2. Components and Modularity**
 
-**Principle:** The system shall be composed of independent components with high cohesion and low coupling.
+**Principle**  
+The system shall be composed of independent components with high cohesion and low coupling.
 
-**Rationale:** Strong modularity limits the blast radius of changes, improves testability, and enables parallel development.
+**Rationale**  
+Strong modularity limits the impact of changes, enables parallel development, improves testability, and reduces the likelihood of cascading failures.
 
-**Implementation Guidance:**
+**Implementation Guidance**
 
-* **Encapsulation:** Modules must hide their internal state. Interaction with a module happens *only* through its public interface (API).
-* **Interfaces First:** Design and review interfaces before implementation. This enables high-level design discussions without implementation bias.
-* **Failure Contracts:** Interfaces must explicitly define potential error cases and failure modes, not just successful operations.
+* **Encapsulation:** Components must hide internal state. Interaction with a component shall occur *only* via its public interface (API).
+* **Interfaces First:** Interfaces shall be designed and reviewed before implementation to support architectural discussion without implementation bias.
+* **Failure Contracts:** Interfaces must explicitly document expected error conditions and failure modes, not only successful behaviour.
 * **Testability:** Each component shall be testable in isolation using mocks or stubs for its dependencies.
-* **Component Deactivation:** It must be possible to disable any non-critical functional component (at build-time or runtime) while the rest of the system remains operational, simply without that functionality.
+* **Component Deactivation:** Any non-critical functional component must be disableable (at build-time or runtime) without preventing the remainder of the system from operating.
+
+---
 
 ### **2.3. Frameworks**
 
-**Principle:** Application code shall focus on domain logic, not on infrastructure concerns such as scheduling, message routing, or state orchestration.
+**Principle**  
+Application code shall focus on domain-specific logic and avoid direct responsibility for infrastructure concerns.
 
-**Rationale:** Centralising infrastructure logic reduces duplication, enforces consistency, and allows complexity to be handled by well-reviewed core mechanisms.
+**Rationale**  
+Centralising infrastructure logic improves consistency, reduces duplication, and ensures that complex control mechanisms are implemented and maintained by experienced engineers.
 
-**Implementation Guidance:**
+**Implementation Guidance**
 
-* **Framework Usage:** Use frameworks to standardise common infrastructure concerns (e.g., message passing, state machines, task scheduling).
-* **Inversion of Control:** Frameworks call application code; application code shall not implement its own main control loops.
-* **Interface Simplicity:** Framework internals may be complex, but exposed interfaces must remain simple, explicit, and predictable for application developers.
+* **Framework Usage:** Use approved frameworks to standardise infrastructure concerns such as message passing, state machines, and task scheduling.
+* **Inversion of Control:** Frameworks invoke application code; application code shall not implement its own main control loops.
+* **Interface Simplicity:** Framework internals may be complex, but exposed interfaces must remain simple, explicit, and predictable.
+
+---
 
 ### **2.4. Maintainability Over Premature Optimisation**
 
-**Principle:** Code clarity and maintainability take precedence over micro-optimisations.
+**Principle**  
+Code clarity and long-term maintainability shall take precedence over premature optimisation.
 
-**Rationale:** Embedded systems have constraints, but unreadable or overly clever code creates long-term technical debt and increases defect risk.
+**Rationale**  
+While embedded systems operate under resource constraints, overly clever or opaque code increases defect risk and creates long-term technical debt.
 
-**Implementation Guidance:**
+**Implementation Guidance**
 
-* **Optimisation Policy:** Write clear, logical code first. Optimise for speed or memory only when measured performance data shows requirements are not met.
+* **Optimisation Policy:** Write clear, readable code first. Optimise for speed or memory only when measured data demonstrates that requirements are not met.
 * **Clean Code Practices:**
+  * **Small Functions:** Decompose complex behaviour into small, focused functions with descriptive names.
+  * **Object-Oriented Techniques:** Apply encapsulation and polymorphism to structure behaviour and state. In C, this may be achieved using opaque structs, function pointers, or similar patterns.
 
-  * **Small Functions:** Decompose complex logic into small, focused functions with descriptive names.
-  * **OOP Techniques:** Apply Object-Oriented Programming concepts (e.g., encapsulation, polymorphism) to structure data and behaviour. In C, this may be achieved using opaque structs, function pointers, or similar patterns to manage complexity and state.
+---
 
 ## **3. The Development Ecosystem**
 
-*The tools and processes that enable speed and stability.*
+*The tools and processes that enable speed, quality, and stability.*
 
 ### **3.1. Simulation-First Approach (Software-in-the-Loop)**
 
-**Principle:** Application logic shall not depend on physical target hardware for correct behaviour or verification.
+**Principle**  
+Application logic shall not depend on physical target hardware for correct behaviour or verification.
 
-**Rationale:** Early and deterministic verification reduces debugging time, removes hardware bottlenecks, and enables development before hardware availability.
+**Rationale**  
+Deterministic, early verification dramatically reduces debugging time, removes hardware bottlenecks, and enables development before hardware availability.
 
-**Implementation Guidance:**
+**Implementation Guidance**
 
-* **Host Execution:** Developers must be able to compile and run application logic on a host computer (Windows/Linux).
-* **Time Abstraction & Control:** The simulation environment shall provide full control over system time, including pause, single-step, fast-forward, and precise event scheduling independent of wall-clock time.
-* **Sync/Async Separation:** Separate synchronous business logic from asynchronous events (e.g., interrupts, timers). Use defined interfaces (e.g., Asynchronous Interface Handlers – AIH) to bridge the two.
-* **Determinism Target:** Core logic shall be deterministic under simulation, with all asynchronous behaviour explicitly triggered by the test or simulation environment.
+* **Host Execution:** Application logic must be buildable and executable on a host computer (Windows/Linux).
+* **Time Abstraction and Control:** The simulation environment shall provide full control over system time, including pause, single-step execution, fast-forwarding, and precise event scheduling independent of wall-clock time.
+* **Synchronous / Asynchronous Separation:** Separate synchronous business logic from asynchronous events (e.g., interrupts, timers). Bridge the two using explicit interfaces such as Asynchronous Interface Handlers (AIH).
+* **Determinism Target:** Core logic shall behave deterministically under simulation, with all asynchronous behaviour explicitly triggered by tests or the simulation environment.
+
+---
 
 ### **3.2. Continuous Quality Verification**
 
-**Principle:** Software quality shall be continuously verified throughout development, not assessed only at the end.
+**Principle**  
+Software quality shall be continuously verified throughout development.
 
-**Rationale:** Early detection of defects reduces rework cost and prevents defect accumulation.
+**Rationale**  
+Early detection of defects reduces rework cost and prevents the accumulation of latent faults.
 
-**Implementation Guidance:**
+**Implementation Guidance**
 
-* **Static Analysis:** All code must pass static analysis tools (e.g., linting, MISRA checks) before integration.
+* **Static Analysis:** All code must pass configured static analysis tools (e.g., linting, MISRA compliance checks) prior to integration.
 * **Automated Testing:** Continuous Integration (CI) pipelines shall execute unit tests and regression tests on every commit.
+
+---
 
 ### **3.3. Iterative Development**
 
-**Principle:** Development shall proceed in small, incremental iterations rather than large, monolithic releases.
+**Principle**  
+Development shall proceed in small, incremental iterations rather than large, monolithic releases.
 
-**Rationale:** Iterative development limits risk exposure and enables early validation of assumptions.
+**Rationale**  
+Iterative development limits risk exposure and enables early validation of assumptions and design decisions.
 
-**Implementation Guidance:**
+**Implementation Guidance**
 
-* **Risk-Driven Planning:** Prioritise high-risk elements (e.g., complex algorithms, new communication buses) in early iterations to enable fast failure and early recovery.
+* **Risk-Driven Planning:** High-risk elements (e.g., complex algorithms, new communication technologies) shall be addressed early to enable fast failure and recovery.
 
-### **3.4. Manage Testable Requirements (Traceability)**
+---
 
-**Principle:** Every implemented feature shall be traceable to a documented and testable requirement.
+### **3.4. Testable Requirements and Traceability**
 
-**Rationale:** Traceability ensures completeness, supports certification activities, and prevents undocumented behaviour from entering the system.
+**Principle**  
+Every implemented feature shall be traceable to a documented and testable requirement.
 
-**Implementation Guidance:**
+**Rationale**  
+Traceability ensures completeness, supports certification activities, and prevents undocumented behaviour from entering the system.
+
+**Implementation Guidance**
 
 * **V-Model Alignment:** Maintain traceability from Requirements → Design → Code → Test.
+* **Testability Rule:** Requirements that cannot be verified, either automatically or manually, shall not be implemented.
 
-* **Testability Rule:** Requirements that cannot be verified (automatically or manually) shall not be implemented.
-
-* **The V-Model:** We maintain traceability. Requirements → Design → Code → Test.
-
-* **Testability:** If a requirement cannot be tested (either automatically or manually), it is not a valid requirement.
+---
 
 ## **4. Team Dynamics & Knowledge Management**
 
-*Ensuring the team operates as a single unit.*
+*Ensuring the team operates as a cohesive and resilient unit.*
 
 ### **4.1. Consistency**
 
-**Principle:** Similar problems shall be solved using consistent architectural and coding approaches.
+**Principle**  
+Similar problems shall be solved using consistent architectural and coding approaches.
 
-**Rationale:** Consistency reduces cognitive load, accelerates onboarding, and simplifies long-term maintenance.
+**Rationale**  
+Consistency reduces cognitive load, accelerates onboarding, and simplifies cross-team maintenance.
 
-**Implementation Guidance:**
+**Implementation Guidance**
 
 * **Design Patterns:** Apply established and agreed-upon design patterns.
-* **Uniform Structure:** Module structure, naming conventions, and error handling shall follow common conventions across the codebase.
+* **Uniform Structure:** Module structure, naming conventions, and error-handling approaches shall be consistent across the codebase.
+
+---
 
 ### **4.2. Knowledge Dissemination**
 
-**Principle:** No critical part of the system shall depend on the knowledge of a single individual.
+**Principle**  
+No critical part of the system shall depend on the knowledge of a single individual.
 
-**Rationale:** Shared understanding increases resilience against personnel changes and reduces operational risk.
+**Rationale**  
+Shared understanding increases organisational resilience and reduces operational risk.
 
-**Implementation Guidance:**
+**Implementation Guidance**
 
 * **Peer Programming:** Complex or unique functionality shall involve at least two developers.
-* **Code Reviews:** All changes must be reviewed before merging into the main branch, with reviews focusing on correctness, clarity, and knowledge sharing.
+* **Code Reviews:** All changes must be reviewed before merging, with reviews focusing on correctness, clarity, and knowledge sharing.
 * **Visualisation:** Use diagrams (e.g., UML, flowcharts) to document behaviour and support architectural discussions.
 * **Documentation Strategy:** Documentation shall reside within the code repository and capture design decisions and architectural rationale that cannot be inferred from code alone.
 
+---
+
 ## **5. Robustness, Safety & Security**
 
-*Ensuring the system is resilient.*
+*Ensuring the system is resilient under normal and fault conditions.*
 
 ### **5.1. Unified Error Handling Strategy**
 
-**Principle:** The system shall handle errors in a consistent, predictable, and recoverable manner.
+**Principle**  
+The system shall handle errors in a consistent, predictable, and recoverable manner.
 
-**Rationale:** A unified error strategy prevents undefined behaviour and simplifies fault analysis and recovery.
+**Rationale**  
+A unified error-handling strategy prevents undefined behaviour and simplifies fault diagnosis and recovery.
 
-**Implementation Guidance:**
+**Implementation Guidance**
 
-* **Error Reporting Rules:** Define and apply system-wide conventions for error reporting (e.g., return codes, status objects, exceptions).
-* **Recovery Strategy:** Define a safe state and recovery mechanisms (e.g., watchdog timers) for critical failures.
+* **Error Reporting Rules:** Define and apply system-wide conventions for error reporting (e.g., return codes, status objects, or exceptions).
+* **Recovery Strategy:** Define safe states and recovery mechanisms (e.g., watchdog timers) for critical failures.
 * **DFMEA Documentation:** Explicitly document failure modes and residual risks to support Design Failure Mode and Effects Analysis (DFMEA).
+
+---
 
 ### **5.2. Security by Design**
 
-**Principle:** Security considerations shall be integrated into the system architecture from the outset.
+**Principle**  
+Security considerations shall be integrated into the system architecture from the outset.
 
-**Rationale:** Retrofitting security is costly and error-prone; early integration reduces attack surface and systemic risk.
+**Rationale**  
+Retrofitting security is costly and error-prone; early integration reduces attack surface and systemic risk.
 
-**Implementation Guidance:**
+**Implementation Guidance**
 
 * **Input Validation:** Validate all external inputs (e.g., sensors, communication interfaces) against expected ranges and types.
-* **Least Privilege:** Tasks and modules shall only access the memory regions and peripherals they require.
-* **Credential Management:** Secrets (passwords, keys, URLs) shall not be hardcoded; use secure storage or provisioning mechanisms.
+* **Principle of Least Privilege:** Tasks and modules shall access only the memory regions and peripherals strictly required.
+* **Credential Management:** Secrets such as passwords, cryptographic keys, and URLs shall not be hardcoded. Use secure storage or controlled provisioning mechanisms.
+
+---
 
 ### **5.3. Configuration Management**
 
-**Principle:** The software shall support multiple hardware variants and deployments without code duplication.
+**Principle**  
+The software shall support multiple hardware variants and deployments without code duplication.
 
-**Rationale:** Centralised configuration reduces maintenance overhead and prevents variant-specific code forks.
+**Rationale**  
+Centralised configuration reduces maintenance overhead and prevents the proliferation of variant-specific code.
 
-**Implementation Guidance:**
+**Implementation Guidance**
 
 * **Build-Time Configuration:** Use configuration files or preprocessor definitions to enable or disable features while maintaining a unified codebase.
 * **Runtime Configuration:** Store configurable parameters (e.g., calibration data, feature flags, network settings) in non-volatile memory to allow adaptation without recompilation.
+
